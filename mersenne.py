@@ -77,6 +77,19 @@ param_units = {
     "length": "m"
 }
 
+param_output_units = {
+    # auxiliary params
+    "basefreq": "Hz",
+    "diameter": "mm",
+    "radius": "mm",
+    "volumic_mass": "kg/m³",
+    # main params
+    "freq": "Hz",
+    "tension": "kgf",
+    "linear_mass": "g/m",
+    "length": "mm"
+}
+
 def to_SI(data, ureg):
     for param in param_units:
         if param in data:
@@ -93,25 +106,25 @@ def to_SI(data, ureg):
             data[param] = quantity.to(param_units[param]).magnitude
 
 def print_data(data, ureg):
-    print("Frequency: {} Hz".format(data["freq"]), end='')
+    print("Frequency: {:n~P}".format(ureg.Quantity(data["freq"], param_units["freq"]).to(param_output_units["freq"])), end='')
     if "note" in data:
         print(' (Note: {}'.format(data["note"]), end='')
         if "octave" in data:
             print(', octave: {}'.format(data["octave"]), end='')
         if "basefreq" in data:
-            print(', base frequency: {}'.format(data["basefreq"]), end='')
+            print(', base frequency: {:n~P}'.format(ureg.Quantity(data["basefreq"], param_units["basefreq"]).to(param_output_units["basefreq"])), end='')
         print(')', end='')
     print()
 
-    print("Tension: {} N".format(data["tension"]))
+    print("Tension: {:n~P}".format(ureg.Quantity(data["tension"], param_units["tension"]).to(param_output_units["tension"])))
 
-    print("Length: {:~P}".format(ureg.Quantity(data["length"], param_units["length"]).to_compact()))
+    print("Length: {:n~P}".format(ureg.Quantity(data["length"], param_units["length"]).to(param_output_units["length"])))
 
-    print("Linear mass: {:~P}".format(ureg.Quantity(data["linear_mass"], param_units["linear_mass"]).to_compact()), end='')
+    print("Linear mass: {:n~P}".format(ureg.Quantity(data["linear_mass"], param_units["linear_mass"]).to(param_output_units["linear_mass"])), end='')
     if "radius" in data:
-        print(' (radius: {:~P}'.format(ureg.Quantity(data["radius"], param_units["radius"]).to_compact()), end='')
-        print(', diameter: {:~P}'.format(ureg.Quantity(data["diameter"], param_units["diameter"]).to_compact()), end='')
-        print(', volumic_mass: {:~P}'.format(ureg.Quantity(data["volumic_mass"], param_units["volumic_mass"]).to_compact()), end='')
+        print(' (radius: {:n~P}'.format(ureg.Quantity(data["radius"], param_units["radius"]).to(param_output_units["radius"])), end='')
+        print(', diameter: {:n~P}'.format(ureg.Quantity(data["diameter"], param_units["diameter"]).to(param_output_units["diameter"])), end='')
+        print(', volumic_mass: {:n~P}'.format(ureg.Quantity(data["volumic_mass"], param_units["volumic_mass"]).to(param_output_units["volumic_mass"])), end='')
         print(')', end='')
     print()
 
@@ -191,6 +204,7 @@ if __name__ == "__main__":
     parser.add_argument('-v','--volumic_mass', nargs=1, help='Volumic mass of the string material (in kg/m³ by default)')
 
     # Options
+    parser.add_argument('-u', '--unit', nargs=1, action='append', metavar='param:unit', help='Select an unit to display a param in default output')
     parser.add_argument('-j', '--json_output', action='store_true', help='Format output data as JSON')
     parser.add_argument('-J', '--json_input', type=FileType('r'), help="Use JSON file as input (use '-' for stdin)")
 
@@ -211,4 +225,9 @@ if __name__ == "__main__":
     if args.json_output:
         print(json.dumps(data, indent=4))
     else:
+        if args.unit:
+            for param_unit in args.unit:
+                param, unit = param_unit[0].split(':')
+                param_output_units[param] = unit
+
         print_data(data, ureg)
