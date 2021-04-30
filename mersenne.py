@@ -35,18 +35,33 @@ def linear_mass_to_radius(linear_mass, volumic_mass):
 # see https://en.wikipedia.org/wiki/Mersenne%27s_laws
 
 def get_freq(length, tension, linear_mass):
-    return length * sqrt(tension / linear_mass) / 2
+    return sqrt(tension / linear_mass) / (2 * length)
 
 def get_tension(linear_mass, length, freq):
-    return (2 * freq / length) ** 2 * linear_mass
+    return (2 * freq * length) ** 2 * linear_mass
 
 def get_linear_mass(tension, length, freq):
-    return tension / (2 * freq / length) ** 2
+    return tension / (2 * freq * length) ** 2
 
 def get_length(linear_mass, tension, freq):
-    return 2 * freq / sqrt(tension / linear_mass)
+    return sqrt(tension / linear_mass) / (2 * freq)
 
 # data processing
+
+param_names = {
+    # Main params
+    'freq',
+    'tension',
+    'linear_mass',
+    'length',
+    # Auxilary params
+    'note',
+    'octave',
+    'basefreq',
+    'diameter',
+    'radius',
+    'volumic_mass'
+}
 
 param_units = {
     # auxiliary params
@@ -64,12 +79,12 @@ param_units = {
 def to_SI(data, ureg):
     for param in param_units:
         if param in data:
-            if type(data) == int or type(data) == float:
+            if type(data[param]) == int or type(data[param]) == float:
                 continue
 
             quantity = ureg(data[param])
 
-            if type(data) == int or type(data) == float:
+            if type(quantity) == int or type(quantity) == float:
                 # No unit : we assume it's already in SI unit
                 data[param] = quantity
                 continue
@@ -118,7 +133,7 @@ def complete_data(data):
         data["radius"] = data["diameter"]/2
 
     if not "linear_mass" in data and "radius" in data and "volumic_mass" in data:
-        data["linear_mass"] = radius_to_linear_mass(data["radius"], data["linear_mass"])
+        data["linear_mass"] = radius_to_linear_mass(data["radius"], data["volumic_mass"])
 
     # Find missing parameters
 
@@ -155,28 +170,31 @@ def complete_data(data):
 
     if not "radius"in data and "volumic_mass" in data:
         data["radius"] = linear_mass_to_radius(data["linear_mass"], data["volumic_mass"])
-        data["diameter"] = data["radius"]/2
+        data["diameter"] = data["radius"]*2
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Apply Mersenne's law formulas.")
 
+    # Main params
+    parser.add_argument('-f','--freq', nargs=1, help='Frequency (in Hz by default)')
+    parser.add_argument('-t','--tension', nargs=1, help='Tension of the string (in N by default)')
+    parser.add_argument('-m','--linear_mass', nargs=1, help='Linear mass of the string (in kg/m by default)')
+    parser.add_argument('-l','--length', nargs=1, help='Length of the string (in m by default)')
+
+    # Auxilary params
     parser.add_argument('-n','--note', nargs=1, help='Note of the string')
     parser.add_argument('-o','--octave', nargs=1, type=int, help='Octave of the note')
     parser.add_argument('-b','--basefreq', nargs=1, help='Base frequency for 4th octave A (in Hz by default)')
     parser.add_argument('-d','--diameter', nargs=1, help='Diameter of the string (in m by default)')
     parser.add_argument('-r','--radius', nargs=1, help='Radius of the string (in m by default)')
     parser.add_argument('-v','--volumic_mass', nargs=1, help='Volumic mass of the string material (in kg/m³ by default)')
-    parser.add_argument('-f','--freq', nargs=1, help='Frequency (in Hz by default)')
-    parser.add_argument('-t','--tension', nargs=1, help='Tension of the string (in N by default)')
-    parser.add_argument('-m','--linear_mass', nargs=1, help='Linear mass of the string (in kg/m by default)')
-    parser.add_argument('-l','--length', nargs=1, help='Length of the string (in m by default)')
 
-    ureg = UnitRegistry()
 
     data = vars(parser.parse_args())
 
     # Remove empty params
     data = {k:data[k][0] for k in data if data[k] != None}
+    ureg = UnitRegistry()
 
     to_SI(data, ureg)
 
