@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 from math import sqrt, pi
-from argparse import ArgumentParser
+from argparse import ArgumentParser, FileType
+import json
 
 from pint import UnitRegistry
 
@@ -189,15 +190,25 @@ if __name__ == "__main__":
     parser.add_argument('-r','--radius', nargs=1, help='Radius of the string (in m by default)')
     parser.add_argument('-v','--volumic_mass', nargs=1, help='Volumic mass of the string material (in kg/m³ by default)')
 
+    # Options
+    parser.add_argument('-j', '--json_output', action='store_true', help='Format output data as JSON')
+    parser.add_argument('-J', '--json_input', type=FileType('r'), help="Use JSON file as input (use '-' for stdin)")
 
-    data = vars(parser.parse_args())
+    args = parser.parse_args()
 
-    # Remove empty params
-    data = {k:data[k][0] for k in data if data[k] != None}
+    if args.json_input:
+        data = json.load(args.json_input)
+    else: # Get data parameters from program arguments
+        dargs = vars(args)
+        data = {k:dargs[k][0] for k in dargs if dargs[k] != None and k in param_names}
+
     ureg = UnitRegistry()
 
     to_SI(data, ureg)
 
     complete_data(data)
 
-    print_data(data, ureg)
+    if args.json_output:
+        print(json.dumps(data, indent=4))
+    else:
+        print_data(data, ureg)
